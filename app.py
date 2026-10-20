@@ -4,19 +4,15 @@ from dotenv import load_dotenv
 from flask import Flask
 
 from extensions import db, jwt
-from models.produit import Produit
-from models.utilisateur import Utilisateur
 from routes.auth import auth_bp
 from routes.produit import product_bp
 
 
 def create_app(test_config=None):
-    """Crée l'application Flask et permet de remplacer sa configuration."""
     load_dotenv()
 
     app = Flask(__name__)
 
-    # Ces valeurs sont utilisées par l'application quand on la lance normalement.
     app.config.from_mapping(
         SQLALCHEMY_DATABASE_URI="sqlite:///digimarket.db",
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
@@ -37,15 +33,11 @@ def create_app(test_config=None):
 
     return app
 
-
-# Cette variable conserve la façon habituelle de démarrer l'application
-# avec « python app.py » et reste disponible aux outils qui importent app.
 app = create_app()
-
 
 if __name__ == "__main__":
     # La base est initialisée au démarrage normal de l'application.
-    # Les tests, eux, créent leurs tables dans leur propre base temporaire.
+    # Les tests créent leurs tables dans leur propre base temporaire.
     with app.app_context():
         db.create_all()
     app.run(debug=True)
