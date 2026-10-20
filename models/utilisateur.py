@@ -1,6 +1,6 @@
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from extensions import db
+from utils import db
 
 
 class Utilisateur(db.Model):

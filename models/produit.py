@@ -1,4 +1,4 @@
-from extensions import db
+from utils import db
 
 
 class Produit(db.Model):

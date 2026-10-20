@@ -4,8 +4,9 @@ from dotenv import load_dotenv
 from flasgger import Swagger
 from flask import Flask
 
-from extensions import db, jwt
+from utils import db, jwt
 from routes.auth import auth_bp
+from routes.commande import order_bp
 from routes.produit import product_bp
 
 
@@ -31,6 +32,7 @@ def create_app(test_config=None):
     jwt.init_app(app)
     app.register_blueprint(auth_bp)
     app.register_blueprint(product_bp)
+    app.register_blueprint(order_bp)
 
     # Flasgger lit les spécifications YAML écrites dans les docstrings
     # des routes et fournit l'interface interactive sur /apidocs/.

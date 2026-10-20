@@ -1,9 +1,9 @@
 import pytest
 from flask_jwt_extended import create_access_token
 
-from extensions import db
 from models.produit import Produit
 from models.utilisateur import Utilisateur
+from utils import db
 
 
 @pytest.fixture

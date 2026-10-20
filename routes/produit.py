@@ -1,17 +1,10 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import jwt_required
 
-from extensions import db, save
 from models.produit import Produit
-from models.utilisateur import Utilisateur
+from utils import db, is_admin, save
 
 product_bp = Blueprint("product", __name__, url_prefix="/api")
-
-def is_admin():
-    user = db.session.get(Utilisateur, get_jwt_identity())
-    if user is None or user.role != "admin":
-        return jsonify({"erreur": "Accès réservé aux administrateurs."}), 403
-    return None
 
 
 @product_bp.route("/produits", methods=["GET"])

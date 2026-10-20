@@ -5,7 +5,7 @@ import pytest
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret")
 
 from app import create_app
-from extensions import db
+from utils import db
 
 
 @pytest.fixture
