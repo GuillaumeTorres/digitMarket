@@ -15,3 +15,16 @@ class Produit(db.Model):
         nullable=False,
         default=db.func.current_timestamp(),
     )
+
+    def show(self):
+        return {
+            "id": self.id,
+            "nom": self.nom,
+            "description": self.description,
+            "categorie": self.categorie,
+            "prix": self.prix,
+            "quantite_stock": self.quantite_stock,
+            "date_creation": (
+                self.date_creation.isoformat()
+            ),
+        }

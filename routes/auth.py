@@ -1,9 +1,8 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token
 
-from extensions import db
+from extensions import db, save
 from models.utilisateur import Utilisateur
-
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -47,12 +46,14 @@ def register():
         db.select(Utilisateur).where(Utilisateur.email == email)
     )
     if existing_user:
-        return jsonify({"erreur": "Cet email est déjà utilisé."}), 400
+        return jsonify({"erreur": "Cet email est déjà utilisé."}), 409
 
     user = Utilisateur(nom=name, email=email, role="client")
     user.hash_mot_de_passe(password)
     db.session.add(user)
-    db.session.commit()
+
+    if not save():
+        return jsonify({"erreur": "Le compte n'a pas pu être créé."}), 409
 
     return jsonify({
         "message": "Compte créé avec succès.",
