@@ -7,13 +7,39 @@ from models.utilisateur import Utilisateur
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
-@auth_bp.route("/test", methods=["GET"])
-def test():
-    return jsonify({"message": "API Auth fonctionne correctement."}), 200
-
-
 @auth_bp.route("/register", methods=["POST"])
 def register():
+    """Créer un compte client.
+    ---
+    tags:
+      - Authentification
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - nom
+            - email
+            - mot_de_passe
+          properties:
+            nom:
+              type: string
+            email:
+              type: string
+              format: email
+            mot_de_passe:
+              type: string
+              format: password
+    responses:
+      201:
+        description: JSON contenant un message et les informations du compte.
+      400:
+        description: Données manquantes ou invalides.
+      409:
+        description: L'email est déjà utilisé ou le compte n'a pas pu être créé.
+    """
     body = request.get_json()
 
     email = body.get("email")
@@ -69,6 +95,34 @@ def register():
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
+    """Se connecter et obtenir un token d'accès.
+    ---
+    tags:
+      - Authentification
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - mot_de_passe
+          properties:
+            email:
+              type: string
+              format: email
+            mot_de_passe:
+              type: string
+              format: password
+    responses:
+      200:
+        description: JSON contenant un message, un token et l'utilisateur.
+      400:
+        description: Email ou mot de passe manquant ou invalide.
+      401:
+        description: Email ou mot de passe incorrect.
+    """
     body = request.get_json()
 
     email = body.get("email")

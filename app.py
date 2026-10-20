@@ -1,6 +1,7 @@
 import os
 
 from dotenv import load_dotenv
+from flasgger import Swagger
 from flask import Flask
 
 from extensions import db, jwt
@@ -30,6 +31,25 @@ def create_app(test_config=None):
     jwt.init_app(app)
     app.register_blueprint(auth_bp)
     app.register_blueprint(product_bp)
+
+    # Flasgger lit les spécifications YAML écrites dans les docstrings
+    # des routes et fournit l'interface interactive sur /apidocs/.
+    swagger_template = {
+        "info": {
+            "title": "DigitMarket API",
+            "description": "Documentation de l'API du catalogue DigitMarket.",
+            "version": "1.0.0",
+        },
+        "securityDefinitions": {
+            "Bearer": {
+                "type": "apiKey",
+                "name": "Authorization",
+                "in": "header",
+                "description": "Saisir le token sous la forme : Bearer <token>",
+            }
+        },
+    }
+    Swagger(app, template=swagger_template)
 
     return app
 

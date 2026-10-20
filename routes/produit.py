@@ -15,8 +15,24 @@ def is_admin():
 
 
 @product_bp.route("/produits", methods=["GET"])
-@jwt_required()
 def list_products():
+    """Lister les produits avec ou sans filtres.
+    ---
+    tags:
+      - Produits
+    parameters:
+      - name: nom
+        in: query
+        type: string
+        description: Recherche partielle dans le nom.
+      - name: categorie
+        in: query
+        type: string
+        description: Correspondance exacte sans distinction de casse.
+    responses:
+      200:
+        description: Liste JSON des produits correspondants.
+    """
     name = request.args.get("nom")
     category = request.args.get("categorie")
 
@@ -27,15 +43,29 @@ def list_products():
 
     if category:
         query = query.filter(Produit.categorie.ilike(category))
-        
+
 
     products = query.all()
     return jsonify([product.show() for product in products]), 200
 
 
 @product_bp.route("/produits/<int:product_id>", methods=["GET"])
-@jwt_required()
 def get_product(product_id):
+    """Afficher un produit par son identifiant.
+    ---
+    tags:
+      - Produits
+    parameters:
+      - name: product_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Objet JSON du produit trouvé.
+      404:
+        description: Produit introuvable.
+    """
     product = db.session.get(Produit, product_id)
     if product is None:
         return jsonify({"erreur": "Produit introuvable."}), 404
@@ -45,6 +75,44 @@ def get_product(product_id):
 @product_bp.route("/produits", methods=["POST"])
 @jwt_required()
 def create_product():
+    """Créer un produit (administrateurs uniquement).
+    ---
+    tags:
+      - Produits
+    security:
+      - Bearer: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required:
+            - nom
+            - categorie
+            - prix
+            - quantite_stock
+          properties:
+            nom:
+              type: string
+            description:
+              type: string
+            categorie:
+              type: string
+            prix:
+              type: number
+            quantite_stock:
+              type: integer
+    responses:
+      201:
+        description: JSON contenant un message et le produit créé.
+      400:
+        description: Données invalides ou échec de création.
+      401:
+        description: Token absent ou invalide.
+      403:
+        description: Accès réservé aux administrateurs.
+    """
     access_error = is_admin()
     if access_error:
         return access_error
@@ -85,6 +153,45 @@ def create_product():
 @product_bp.route("/produits/<int:product_id>", methods=["PATCH"])
 @jwt_required()
 def update_product(product_id):
+    """Modifier un produit (administrateurs uniquement).
+    ---
+    tags:
+      - Produits
+    security:
+      - Bearer: []
+    parameters:
+      - name: product_id
+        in: path
+        type: integer
+        required: true
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nom:
+              type: string
+            description:
+              type: string
+            categorie:
+              type: string
+            prix:
+              type: number
+            quantite_stock:
+              type: integer
+    responses:
+      200:
+        description: JSON contenant un message et le produit modifié.
+      400:
+        description: Produit non modifié.
+      401:
+        description: Token absent ou invalide.
+      403:
+        description: Accès réservé aux administrateurs.
+      404:
+        description: Produit introuvable.
+    """
     access_error = is_admin()
     if access_error:
         return access_error
@@ -113,6 +220,27 @@ def update_product(product_id):
 @product_bp.route("/produits/<int:product_id>", methods=["DELETE"])
 @jwt_required()
 def delete_product(product_id):
+    """Supprimer un produit (administrateurs uniquement).
+    ---
+    tags:
+      - Produits
+    security:
+      - Bearer: []
+    parameters:
+      - name: product_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: JSON contenant un message de confirmation.
+      401:
+        description: Token absent ou invalide.
+      403:
+        description: Accès réservé aux administrateurs.
+      404:
+        description: Produit introuvable.
+    """
     access_error = is_admin()
     if access_error:
         return access_error
