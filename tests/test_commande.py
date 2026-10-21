@@ -115,7 +115,7 @@ def test_create_order(client, create_order):
     assert len(order["produits"]) == 2
 
 
-def test_list_orders(client, create_order):
+def test_get_orders(client, create_order):
     customer, _, _ = create_order
     admin = Utilisateur.query.filter_by(role="admin").first()
 
@@ -136,3 +136,27 @@ def test_list_orders(client, create_order):
 
     assert admin_response.status_code == 200
     assert len(admin_response.json) == 3
+
+
+def test_get_order(client, create_order):
+    customer, _, _ = create_order
+    order = Commande.query.filter_by(utilisateur_id=customer.id).first()
+
+    token = create_access_token(identity=str(customer.id))
+    response = client.get(
+        f"/api/commandes/{order.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+
+    admin = Utilisateur.query.filter_by(role="admin").first()
+    admin_token = create_access_token(identity=str(admin.id))
+    response = client.get(
+        f"/api/commandes/{order.id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json["id"] == order.id
+    assert response.json["utilisateur"]["id"] == customer.id

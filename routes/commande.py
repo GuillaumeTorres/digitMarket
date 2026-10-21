@@ -10,7 +10,7 @@ order_bp = Blueprint("order", __name__, url_prefix="/api")
 
 @order_bp.route("/commandes", methods=["GET"])
 @jwt_required()
-def get_order():
+def get_orders():
     """Lister les commandes du client connecté ou toutes celles de l'admin.
     ---
     tags: [Commandes]
@@ -27,6 +27,34 @@ def get_order():
         commandes = Commande.query.filter_by(utilisateur_id=utilisateur_id).all()
 
     return jsonify([commande.show(is_admin=admin_status) for commande in commandes]), 200
+
+@order_bp.route("/commandes/<int:commande_id>", methods=["GET"])
+@jwt_required()
+def get_order(commande_id):
+    """Récupérer une commande par son ID.
+    ---
+    tags: [Commandes]
+    security: [{Bearer: []}]
+    parameters:
+      - name: commande_id
+        in: path
+        required: true
+        type: integer
+    responses:
+      200: {description: Détails de la commande.}
+      404: {description: Commande introuvable.}
+      401: {description: Token absent ou invalide.}
+    """
+    commande = Commande.query.get(commande_id)
+    if not commande:
+        return jsonify({"erreur": "Commande introuvable."}), 404
+
+    admin_status = is_admin() is None
+    utilisateur_id = get_jwt_identity()
+    if not admin_status and commande.utilisateur_id != utilisateur_id:
+        return jsonify({"erreur": "Accès réservé aux administrateurs."}), 403
+
+    return jsonify(commande.show(is_admin=admin_status)), 200
 
 @order_bp.route("/commandes", methods=["POST"])
 @jwt_required()
