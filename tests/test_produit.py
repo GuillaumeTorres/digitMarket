@@ -33,6 +33,7 @@ def create_products(app):
     ])
     db.session.commit()
 
+
 @pytest.fixture
 def token_client(app):
     client = Utilisateur(
@@ -45,6 +46,7 @@ def token_client(app):
     db.session.commit()
 
     return create_access_token(identity=str(client.id))
+
 
 @pytest.fixture
 def token_admin(app):
@@ -87,6 +89,7 @@ def test_list_products(client, create_products):
     assert response.json[0]["nom"] == "Clavier"
     assert response.json[0]["categorie"] == "Informatique"
 
+
 def test_get_product(client, create_products):
     response = client.get("/api/produits/1")
     assert response.status_code == 200
@@ -96,6 +99,7 @@ def test_get_product(client, create_products):
     assert response.json["categorie"] == "Informatique"
     assert response.json["prix"] == 49.99
     assert response.json["quantite_stock"] == 10
+
 
 def test_create_product(client, token_admin, token_client):
     client_response = client.post(
@@ -124,6 +128,7 @@ def test_create_product(client, token_admin, token_client):
     assert response.json["produit"]["prix"] == 79.99
     assert response.json["produit"]["quantite_stock"] == 15
 
+
 def test_update_product(client, create_products, token_admin, token_client):
     client_response = client.post(
         "/api/produits",
@@ -147,6 +152,7 @@ def test_update_product(client, create_products, token_admin, token_client):
     assert response.json["produit"]["quantite_stock"] == 8
     assert response.json["produit"]["nom"] == "Clavier"
 
+
 def test_delete_product(client, create_products, token_admin, token_client):
     client_response = client.post(
         "/api/produits",
@@ -157,6 +163,6 @@ def test_delete_product(client, create_products, token_admin, token_client):
     headers = {"Authorization": f"Bearer {token_admin}"}
     delete_response = client.delete("/api/produits/1", headers=headers)
     assert delete_response.status_code == 200
-    
+
     get_response = client.get("/api/produits/1", headers=headers)
     assert get_response.status_code == 404

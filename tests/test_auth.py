@@ -13,6 +13,7 @@ def test_register(client):
     assert response.json["utilisateur"]["nom"] == "Test"
     assert response.json["utilisateur"]["role"] == "client"
 
+
 def test_login(client):
     client.post(
         "/api/auth/register",

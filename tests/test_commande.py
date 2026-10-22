@@ -97,6 +97,7 @@ def create_order(app):
     db.session.commit()
     return customer_one, headphones, keyboard
 
+
 def test_create_order(client, create_order):
     customer, headphones, keyboard = create_order
     token = create_access_token(identity=str(customer.id))
@@ -265,6 +266,7 @@ def test_update_order(client, create_order):
     assert response.status_code == 200
     db.session.refresh(headphones)
     assert headphones.quantite_stock == 8
+
 
 def test_get_order_items(client, create_order):
     customer, _, _ = create_order

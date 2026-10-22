@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 from flasgger import Swagger
 from flask import Flask
 
-from utils import db, jwt
 from routes.auth import auth_bp
 from routes.commande import order_bp
 from routes.produit import product_bp
+from utils import db, jwt
 
 
 def create_app(test_config=None):
