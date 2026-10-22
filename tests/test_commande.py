@@ -160,3 +160,87 @@ def test_get_order(client, create_order):
     assert response.status_code == 200
     assert response.json["id"] == order.id
     assert response.json["utilisateur"]["id"] == customer.id
+
+
+def test_update_order(client, create_order):
+    customer, headphones, keyboard = create_order
+    admin = Utilisateur.query.filter_by(role="admin").first()
+    admin_token = create_access_token(identity=str(admin.id))
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    customer_token = create_access_token(identity=str(customer.id))
+    customer_headers = {"Authorization": f"Bearer {customer_token}"}
+
+    customer_orders = Commande.query.filter_by(
+        utilisateur_id=customer.id
+    ).order_by(Commande.id).all()
+    order_to_ship = customer_orders[0]
+    order_to_cancel = customer_orders[1]
+
+    # Un client ne peut pas modifier le statut d'une commande.
+    response = client.patch(
+        f"/api/commandes/{order_to_ship.id}",
+        json={"statut": "validee"},
+        headers=customer_headers,
+    )
+    assert response.status_code == 403
+
+    # La validation échoue sans changer le stock si la quantité manque.
+    headphones.quantite_stock = 1
+    db.session.commit()
+    response = client.patch(
+        f"/api/commandes/{order_to_ship.id}",
+        json={"statut": "validee"},
+        headers=headers,
+    )
+    assert response.status_code == 409
+    db.session.refresh(headphones)
+    db.session.refresh(order_to_ship)
+    assert headphones.quantite_stock == 1
+    assert order_to_ship.statut == "en_attente"
+
+    # On remet le stock initial pour tester une validation réussie.
+    headphones.quantite_stock = 10
+    db.session.commit()
+
+    # Valider la première commande retire ses articles du stock.
+    response = client.patch(
+        f"/api/commandes/{order_to_ship.id}",
+        json={"statut": "validee"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    db.session.refresh(headphones)
+    db.session.refresh(keyboard)
+    assert headphones.quantite_stock == 8
+    assert keyboard.quantite_stock == 9
+
+    # L'expédition ne doit pas retirer le stock une deuxième fois.
+    response = client.patch(
+        f"/api/commandes/{order_to_ship.id}",
+        json={"statut": "expediee"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    db.session.refresh(headphones)
+    db.session.refresh(keyboard)
+    assert headphones.quantite_stock == 8
+    assert keyboard.quantite_stock == 9
+
+    # Valider puis annuler la deuxième commande remet ses articles en stock.
+    response = client.patch(
+        f"/api/commandes/{order_to_cancel.id}",
+        json={"statut": "validee"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    db.session.refresh(headphones)
+    assert headphones.quantite_stock == 5
+
+    response = client.patch(
+        f"/api/commandes/{order_to_cancel.id}",
+        json={"statut": "annulee"},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    db.session.refresh(headphones)
+    assert headphones.quantite_stock == 8

@@ -152,3 +152,84 @@ def create_order():
             ]
         }
     }), 201
+
+@order_bp.route("/commandes/<int:commande_id>", methods=["PATCH"])
+@jwt_required()
+def update_order(commande_id):
+    """Mettre à jour le statut d'une commande.
+    ---
+    tags: [Commandes]
+    security: [{Bearer: []}]
+    parameters:
+      - name: commande_id
+        in: path
+        required: true
+        type: integer
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          required: [statut]
+          properties:
+            statut: {type: string}
+    responses:
+      200: {description: Statut de la commande mis à jour.}
+      400: {description: Statut manquant ou transition non autorisée.}
+      403: {description: Accès réservé aux administrateurs.}
+      404: {description: Commande introuvable.}
+      409: {description: Stock insuffisant pour valider la commande.}
+      401: {description: Token absent ou invalide.}
+    """
+    access_error = is_admin()
+    if access_error is not None:
+        return access_error
+
+    body = request.get_json()
+    new_status = body.get("statut")
+
+    if not new_status:
+        return jsonify({"erreur": "Le statut est obligatoire."}), 400
+
+    commande = db.session.get(Commande, commande_id)
+    if not commande:
+        return jsonify({"erreur": "Commande introuvable."}), 404
+
+    if new_status == commande.statut:
+        return jsonify({
+            "message": "Le statut de la commande n'a pas changé.",
+            "commande": commande.show(),
+        }), 200
+
+    allowed_transitions = {
+        "en_attente": ["validee", "annulee"],
+        "validee": ["expediee", "annulee"],
+        "expediee": [],
+        "annulee": [],
+    }
+
+    if new_status not in allowed_transitions.get(commande.statut, []):
+        return jsonify({"erreur": "Ce changement de statut n'est pas autorisée."}), 400
+
+    if commande.statut == "en_attente" and new_status == "validee":
+        for item in commande.lignes:
+            item.produit.quantite_stock -= item.quantite
+            if item.produit.quantite_stock < 0:
+                db.session.rollback()
+                return jsonify({
+                    "erreur": f"Stock insuffisant pour le produit {item.produit.nom}."
+                }), 409
+
+    elif commande.statut == "validee" and new_status == "annulee":
+        for item in commande.lignes:
+            item.produit.quantite_stock += item.quantite
+
+    commande.statut = new_status
+    if not save():
+        return jsonify({"erreur": "Erreur lors de la mise à jour du statut."}), 400
+
+    return jsonify(
+        {
+            "message": "Statut de la commande mis à jour avec succès.",
+            "commande": commande.show()
+        }), 200
