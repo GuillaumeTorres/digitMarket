@@ -108,29 +108,44 @@ def create_order():
               items: {type: object, required: [produit_id, quantite], properties: {produit_id: {type: integer}, quantite: {type: integer}}}
     responses:
       201: {description: Commande créée avec ses articles.}
-      400: {description: Adresse ou produits manquants, ou erreur d'enregistrement.}
+      400: {description: Données manquantes ou invalides, ou erreur d'enregistrement.}
       404: {description: Produit ou utilisateur introuvable.}
       401: {description: Token absent ou invalide.}
     """
     body = request.get_json()
+    if not isinstance(body, dict):
+        return jsonify({"erreur": "Les données de la commande sont invalides."}), 400
 
     adresse_livraison = body.get("adresse_livraison")
-    produits = body.get("produits")
+    products_data = body.get("produits")
 
-    if not all([adresse_livraison, produits]):
+    if (
+        not isinstance(adresse_livraison, str)
+        or not adresse_livraison.strip()
+        or not isinstance(products_data, list)
+        or not products_data
+    ):
         return jsonify({"erreur": "Adresse de livraison et produits obligatoires."}), 400
 
-    # Vérification de l'existence des produits et calcul du prix total
+    # Vérifier tous les produits et quantités avant d'ajouter quoi que ce soit.
     total_prix = 0
-    for produit in produits:
-        produit_id = produit.get("produit_id")
-        quantite = produit.get("quantite")
+    ordered_products = []
+    for product_data in products_data:
+        if not isinstance(product_data, dict):
+            return jsonify({"erreur": "Chaque produit doit être un objet."}), 400
 
-        produit = db.session.get(Produit, produit_id)
-        if produit is None:
-            return jsonify({"erreur": f"Produit avec id {produit_id} introuvable."}), 404
+        product_id = product_data.get("produit_id")
+        quantity = product_data.get("quantite")
 
-        total_prix += produit.prix * quantite
+        if type(product_id) is not int or type(quantity) is not int or quantity <= 0:
+            return jsonify({"erreur": "Chaque produit doit avoir un ID et une quantité entière positive."}), 400
+
+        product = db.session.get(Produit, product_id)
+        if product is None:
+            return jsonify({"erreur": f"Produit avec id {product_id} introuvable."}), 404
+
+        ordered_products.append((product, quantity))
+        total_prix += product.prix * quantity
 
     utilisateur_id = get_jwt_identity()
     utilisateur = db.session.get(Utilisateur, utilisateur_id)
@@ -142,26 +157,20 @@ def create_order():
         utilisateur_id=utilisateur.id,
         adresse_livraison=adresse_livraison,
     )
-    db.session.add(order)
-    if not save():
-        return jsonify({"erreur": "Erreur lors de la création de la commande."}), 400
-
-    order_items = []
-    for produit in produits:
-        produit_id = produit["produit_id"]
-        quantite = produit["quantite"]
-        produit = db.session.get(Produit, produit_id)
-
-        order_item = LigneCommande(
-            commande_id=order.id,
-            produit_id=produit.id,
-            quantite=quantite,
-            prix_unitaire=produit.prix
+    order_items = [
+        LigneCommande(
+            commande=order,
+            produit=product,
+            quantite=quantity,
+            prix_unitaire=product.prix,
         )
-        db.session.add(order_item)
-        order_items.append(order_item)
-        if not save():
-            return jsonify({"erreur": "Erreur lors de l'enregisrement des articles de la commande."}), 400
+        for product, quantity in ordered_products
+    ]
+
+    db.session.add(order)
+    db.session.add_all(order_items)
+    if not save():
+        return jsonify({"erreur": "La commande n'a pas pu être enregistrée."}), 400
 
     return jsonify({
         "message": "Commande créée avec succès.",
