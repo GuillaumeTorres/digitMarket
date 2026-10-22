@@ -73,6 +73,12 @@ def create_order(app):
         quantite=3,
         prix_unitaire=5,
     )
+    item_four = LigneCommande(
+        commande=order_three,
+        produit=keyboard,
+        quantite=1,
+        prix_unitaire=20,
+    )
 
     db.session.add_all([
         customer_one,
@@ -86,6 +92,7 @@ def create_order(app):
         item_one,
         item_two,
         item_three,
+        item_four,
     ])
     db.session.commit()
     return customer_one, headphones, keyboard
@@ -148,6 +155,20 @@ def test_get_order(client, create_order):
         headers={"Authorization": f"Bearer {token}"},
     )
 
+    assert response.status_code == 200
+    assert response.json["id"] == order.id
+    assert "utilisateur" not in response.json
+
+    other_customer = Utilisateur.query.filter_by(
+        email="client2@example.com"
+    ).first()
+    other_order = Commande.query.filter_by(
+        utilisateur_id=other_customer.id
+    ).first()
+    response = client.get(
+        f"/api/commandes/{other_order.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
     assert response.status_code == 403
 
     admin = Utilisateur.query.filter_by(role="admin").first()
@@ -244,3 +265,41 @@ def test_update_order(client, create_order):
     assert response.status_code == 200
     db.session.refresh(headphones)
     assert headphones.quantite_stock == 8
+
+def test_get_order_items(client, create_order):
+    customer, _, _ = create_order
+    order = Commande.query.filter_by(utilisateur_id=customer.id).first()
+    customer_token = create_access_token(identity=str(customer.id))
+
+    response = client.get(
+        f"/api/commandes/{order.id}/lignes",
+        headers={"Authorization": f"Bearer {customer_token}"},
+    )
+    assert response.status_code == 200
+    assert len(response.json) == 2
+    assert {item["nom_produit"] for item in response.json} == {
+        "Casque de test",
+        "Clavier de test",
+    }
+
+    other_customer = Utilisateur.query.filter_by(
+        email="client2@example.com"
+    ).first()
+    other_order = Commande.query.filter_by(
+        utilisateur_id=other_customer.id
+    ).first()
+    response = client.get(
+        f"/api/commandes/{other_order.id}/lignes",
+        headers={"Authorization": f"Bearer {customer_token}"},
+    )
+    assert response.status_code == 403
+
+    admin = Utilisateur.query.filter_by(role="admin").first()
+    admin_token = create_access_token(identity=str(admin.id))
+    response = client.get(
+        f"/api/commandes/{other_order.id}/lignes",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert response.status_code == 200
+    assert len(response.json) == 1
+    assert response.json[0]["nom_produit"] == "Clavier de test"

@@ -46,7 +46,11 @@ class LigneCommande(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     commande_id = db.Column(db.Integer, db.ForeignKey("commandes.id"), nullable=False)
     produit_id = db.Column(db.Integer, db.ForeignKey("produits.id"), nullable=False)
-    quantite = db.Column(db.Integer, nullable=False)
+    quantite = db.Column(
+        db.Integer,
+        db.CheckConstraint("quantite > 0", name="positive"),
+        nullable=False,
+    )
     prix_unitaire = db.Column(db.Float, nullable=False)
 
     produit = db.relationship("Produit")

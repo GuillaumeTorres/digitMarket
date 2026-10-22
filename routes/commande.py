@@ -45,16 +45,47 @@ def get_order(commande_id):
       404: {description: Commande introuvable.}
       401: {description: Token absent ou invalide.}
     """
-    commande = Commande.query.get(commande_id)
+    commande = db.session.get(Commande, commande_id)
     if not commande:
         return jsonify({"erreur": "Commande introuvable."}), 404
 
     admin_status = is_admin() is None
     utilisateur_id = get_jwt_identity()
-    if not admin_status and commande.utilisateur_id != utilisateur_id:
+    if not admin_status and str(commande.utilisateur_id) != str(utilisateur_id):
         return jsonify({"erreur": "Accès réservé aux administrateurs."}), 403
 
     return jsonify(commande.show(is_admin=admin_status)), 200
+
+
+@order_bp.route("/commandes/<int:commande_id>/lignes", methods=["GET"])
+@jwt_required()
+def get_order_items(commande_id):
+    """Lister les articles d'une commande.
+    ---
+    tags: [Commandes]
+    security: [{Bearer: []}]
+    parameters:
+      - name: commande_id
+        in: path
+        required: true
+        type: integer
+    responses:
+      200: {description: Lignes de la commande, éventuellement vide.}
+      403: {description: La commande appartient à un autre client.}
+      404: {description: Commande introuvable.}
+      401: {description: Token absent ou invalide.}
+    """
+    commande = db.session.get(Commande, commande_id)
+    if commande is None:
+        return jsonify({"erreur": "Commande introuvable."}), 404
+
+    admin_status = is_admin() is None
+    utilisateur_id = get_jwt_identity()
+    if not admin_status and str(commande.utilisateur_id) != str(utilisateur_id):
+        return jsonify({"erreur": "Accès réservé aux administrateurs."}), 403
+
+    return jsonify([item.show() for item in commande.lignes]), 200
+
 
 @order_bp.route("/commandes", methods=["POST"])
 @jwt_required()
