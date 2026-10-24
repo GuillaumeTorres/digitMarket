@@ -37,7 +37,6 @@ def list_products():
     if category:
         query = query.filter(Produit.categorie.ilike(category))
 
-
     products = query.all()
     return jsonify([product.show() for product in products]), 200
 

@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+# Définir la clé avant d'importer l'application, qui est créée dès son import.
 os.environ.setdefault("JWT_SECRET_KEY", "test-secret")
 
 from app import create_app
@@ -21,6 +22,7 @@ def app():
         yield test_app
         db.session.remove()
         db.drop_all()
+
 
 @pytest.fixture
 def client(app):

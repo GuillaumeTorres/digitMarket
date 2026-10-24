@@ -8,6 +8,7 @@ from utils import db, is_admin, save
 
 order_bp = Blueprint("order", __name__, url_prefix="/api")
 
+
 @order_bp.route("/commandes", methods=["GET"])
 @jwt_required()
 def get_orders():
@@ -27,6 +28,7 @@ def get_orders():
         commandes = Commande.query.filter_by(utilisateur_id=utilisateur_id).all()
 
     return jsonify([commande.show(is_admin=admin_status) for commande in commandes]), 200
+
 
 @order_bp.route("/commandes/<int:commande_id>", methods=["GET"])
 @jwt_required()
@@ -193,6 +195,7 @@ def create_order():
         }
     }), 201
 
+
 @order_bp.route("/commandes/<int:commande_id>", methods=["PATCH"])
 @jwt_required()
 def update_order(commande_id):
@@ -251,6 +254,7 @@ def update_order(commande_id):
     if new_status not in allowed_transitions.get(commande.statut, []):
         return jsonify({"erreur": "Ce changement de statut n'est pas autorisée."}), 400
 
+    # Le stock est retiré à la validation, puis rendu si la commande validée est annulée.
     if commande.statut == "en_attente" and new_status == "validee":
         for item in commande.lignes:
             item.produit.quantite_stock -= item.quantite

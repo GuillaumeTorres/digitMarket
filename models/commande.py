@@ -16,6 +16,7 @@ class Commande(db.Model):
 
     utilisateur = db.relationship("Utilisateur")
     lignes = db.relationship("LigneCommande", backref="commande")
+
     def show(self, is_admin=False):
         total = sum(
             ligne.quantite * ligne.prix_unitaire
@@ -40,6 +41,7 @@ class Commande(db.Model):
 
         return data
 
+
 class LigneCommande(db.Model):
     __tablename__ = "lignes_commandes"
 
@@ -54,6 +56,7 @@ class LigneCommande(db.Model):
     prix_unitaire = db.Column(db.Float, nullable=False)
 
     produit = db.relationship("Produit")
+
     def show(self):
         return {
             "id": self.id,
