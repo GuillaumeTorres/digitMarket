@@ -96,9 +96,9 @@ Authorization: Bearer <token>
 | `PATCH` | `/api/produits/{id}` | Admin | Modifier un produit |
 | `DELETE` | `/api/produits/{id}` | Admin | Supprimer un produit |
 | `POST` | `/api/commandes` | Utilisateur connecté | Créer une commande avec ses produits et quantités |
-| `GET` | `/api/commandes` | Connecté | Lister ses commandes ; un admin voit toutes les commandes |
-| `GET` | `/api/commandes/{id}` | Propriétaire ou admin | Consulter une commande |
-| `GET` | `/api/commandes/{id}/lignes` | Propriétaire ou admin | Consulter les produits d’une commande |
+| `GET` | `/api/commandes` | Utilisateur connecté | Lister ses commandes ; un admin voit toutes les commandes |
+| `GET` | `/api/commandes/{id}` | Admin | Consulter une commande |
+| `GET` | `/api/commandes/{id}/lignes` | Admin | Consulter les produits d’une commande |
 | `PATCH` | `/api/commandes/{id}` | Admin | Modifier le statut d’une commande |
 
 Les paramètres attendus et les réponses sont détaillés dans Swagger.
@@ -121,7 +121,7 @@ La commande est créée avec le statut `en_attente`. Le stock est vérifié et m
 
 ## Tests
 
-Depuis la racine du projet, avec les dépendances installées :
+Tester les différentes routes de l'API :
 
 ```bash
 python -m pytest
@@ -129,15 +129,21 @@ python -m pytest
 
 Les tests utilisent une base SQLite temporaire séparée de la base de l’application.
 
-## Structure du projet
+## Structure du projet après installation
 
 ```text
 digiMarket/
- ├── app.py             # Création et configuration de l’application Flask
- ├── utils.py           # Extensions Flask et fonctions partagées
- ├── models/            # Modèles SQLAlchemy
- ├── routes/            # Routes organisées en Blueprints
- ├── tests/             # Tests unitaires et fonctionnels
- ├── requirements.txt   # Dépendances Python
- └── instance/          # Base SQLite locale (non versionnée)
+├── .gitignore               # Fichiers ignorés par Git
+├── .env                     # Configuration locale
+├── .venv/                   # Environnement virtuel
+├── README.md                # Présentation et instructions du projet
+├── app.py                   # Création et configuration de l’application Flask
+├── generate_data.py         # Création des données de démonstration
+├── requirements.txt         # Dépendances Python nécessaires
+├── utils.py                 # Fonctions partagées
+├── instance/
+│   └── digimarket.db        # Base SQLite créée par le script
+├── models/                  # Modèles SQLAlchemy
+├── routes/                  # Routes organisées en Blueprints
+└── tests/                   # Tests unitaires et fonctionnels
 ```
